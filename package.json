@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "build": "bun build ./src/index.ts --compile --outfile=dist/bin/claude-notify",
+    "build": "bun build ./src/index.ts --compile --outfile=dist/bin/claude-notify && rm -f .*.bun-build",
     "dev": "bun run src/index.ts",
     "test": "bun test",
     "lint": "biome check ./src",

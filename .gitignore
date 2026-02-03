@@ -150,6 +150,7 @@ vite.config.ts.timestamp-*
 # Bun
 bun.lockb
 .bun/
+*.bun-build
 
 # Build output (compiled binary)
 dist/
