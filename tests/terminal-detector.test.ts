@@ -13,6 +13,32 @@ function createMockedDetectTerminalBundleId() {
       return 'com.googlecode.iterm2';
     }
 
+    // JetBrains IDEs
+    if (env.TERMINAL_EMULATOR === 'JetBrains-JediTerm') {
+      const jetbrainsBundleId = env.__CFBundleIdentifier;
+      if (jetbrainsBundleId?.startsWith('com.jetbrains.')) {
+        return jetbrainsBundleId;
+      }
+    }
+
+    // VS Code 계열 (VS Code, VS Code Insiders, Cursor)
+    if (env.VSCODE_INJECTION === '1' || env.VSCODE_PID) {
+      const cfBundleId = env.__CFBundleIdentifier;
+
+      // VS Code Insiders
+      if (cfBundleId === 'com.microsoft.VSCodeInsiders') {
+        return 'com.microsoft.VSCodeInsiders';
+      }
+
+      // Cursor
+      if (cfBundleId === 'com.todesktop.230313mzl4w4u92') {
+        return 'com.todesktop.230313mzl4w4u92';
+      }
+
+      // 기본 VS Code
+      return 'com.microsoft.VSCode';
+    }
+
     // Ghostty
     if (env.GHOSTTY_RESOURCES_DIR) {
       return 'com.mitchellh.ghostty';
@@ -188,6 +214,60 @@ describe('detectTerminalBundleId (모킹)', () => {
 
     expect(result).toBe('com.mitchellh.ghostty');
   });
+
+  test('JetBrains IDE 감지 - TERMINAL_EMULATOR=JetBrains-JediTerm', () => {
+    const detect = createMockedDetectTerminalBundleId();
+    const result = detect({
+      TERMINAL_EMULATOR: 'JetBrains-JediTerm',
+      __CFBundleIdentifier: 'com.jetbrains.WebStorm',
+    });
+
+    expect(result).toBe('com.jetbrains.WebStorm');
+  });
+
+  test('JetBrains IDE 감지 - IntelliJ IDEA', () => {
+    const detect = createMockedDetectTerminalBundleId();
+    const result = detect({
+      TERMINAL_EMULATOR: 'JetBrains-JediTerm',
+      __CFBundleIdentifier: 'com.jetbrains.intellij',
+    });
+
+    expect(result).toBe('com.jetbrains.intellij');
+  });
+
+  test('VS Code 감지 - VSCODE_INJECTION', () => {
+    const detect = createMockedDetectTerminalBundleId();
+    const result = detect({ VSCODE_INJECTION: '1' });
+
+    expect(result).toBe('com.microsoft.VSCode');
+  });
+
+  test('VS Code 감지 - VSCODE_PID', () => {
+    const detect = createMockedDetectTerminalBundleId();
+    const result = detect({ VSCODE_PID: '12345' });
+
+    expect(result).toBe('com.microsoft.VSCode');
+  });
+
+  test('VS Code Insiders 감지 - VSCODE_PID + __CFBundleIdentifier', () => {
+    const detect = createMockedDetectTerminalBundleId();
+    const result = detect({
+      VSCODE_PID: '12345',
+      __CFBundleIdentifier: 'com.microsoft.VSCodeInsiders',
+    });
+
+    expect(result).toBe('com.microsoft.VSCodeInsiders');
+  });
+
+  test('Cursor 감지 - VSCODE_INJECTION + __CFBundleIdentifier', () => {
+    const detect = createMockedDetectTerminalBundleId();
+    const result = detect({
+      VSCODE_INJECTION: '1',
+      __CFBundleIdentifier: 'com.todesktop.230313mzl4w4u92',
+    });
+
+    expect(result).toBe('com.todesktop.230313mzl4w4u92');
+  });
 });
 
 describe('isTerminalApp (모킹)', () => {
@@ -211,6 +291,11 @@ describe('isTerminalApp (모킹)', () => {
     const TERMINAL_KEYWORDS = ['terminal', 'console', 'iterm', 'shell', 'prompt'];
 
     if (knownTerminalBundleIds.includes(bundleId)) {
+      return true;
+    }
+
+    // Check for JetBrains IDEs
+    if (bundleId.startsWith('com.jetbrains.')) {
       return true;
     }
 
@@ -246,5 +331,11 @@ describe('isTerminalApp (모킹)', () => {
   test('대소문자 무시하고 키워드 매칭', () => {
     expect(isTerminalApp('com.example.TERMINAL')).toBe(true);
     expect(isTerminalApp('com.example.Terminal')).toBe(true);
+  });
+
+  test('JetBrains IDE Bundle ID는 true 반환', () => {
+    expect(isTerminalApp('com.jetbrains.WebStorm')).toBe(true);
+    expect(isTerminalApp('com.jetbrains.intellij')).toBe(true);
+    expect(isTerminalApp('com.jetbrains.PyCharm')).toBe(true);
   });
 });

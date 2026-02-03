@@ -49,6 +49,11 @@ export function isTerminalApp(bundleId: string): boolean {
     return true;
   }
 
+  // Check for JetBrains IDEs
+  if (bundleId.startsWith('com.jetbrains.')) {
+    return true;
+  }
+
   // Check for terminal-related keywords
   return TERMINAL_KEYWORDS.some((keyword) => lowerBundleId.includes(keyword));
 }
@@ -94,32 +99,59 @@ export function detectTerminalBundleId(): string | undefined {
     return 'com.googlecode.iterm2';
   }
 
-  // 2. Ghostty
+  // 2. JetBrains IDEs (WebStorm, IntelliJ, PyCharm, etc.)
+  // JetBrains 내장 터미널은 TERMINAL_EMULATOR=JetBrains-JediTerm 설정
+  if (env.TERMINAL_EMULATOR === 'JetBrains-JediTerm') {
+    const jetbrainsBundleId = env.__CFBundleIdentifier;
+    if (jetbrainsBundleId?.startsWith('com.jetbrains.')) {
+      return jetbrainsBundleId;
+    }
+  }
+
+  // 3. VS Code 계열 (VS Code, VS Code Insiders, Cursor)
+  if (env.VSCODE_INJECTION === '1' || env.VSCODE_PID) {
+    const cfBundleId = env.__CFBundleIdentifier;
+
+    // VS Code Insiders
+    if (cfBundleId === 'com.microsoft.VSCodeInsiders') {
+      return 'com.microsoft.VSCodeInsiders';
+    }
+
+    // Cursor
+    if (cfBundleId === 'com.todesktop.230313mzl4w4u92') {
+      return 'com.todesktop.230313mzl4w4u92';
+    }
+
+    // 기본 VS Code
+    return 'com.microsoft.VSCode';
+  }
+
+  // 4. Ghostty
   if (env.GHOSTTY_RESOURCES_DIR) {
     return 'com.mitchellh.ghostty';
   }
 
-  // 3. WezTerm
+  // 5. WezTerm
   if (env.WEZTERM_EXECUTABLE) {
     return 'com.github.wez.wezterm';
   }
 
-  // 4. Kitty
+  // 6. Kitty
   if (env.KITTY_WINDOW_ID) {
     return 'net.kovidgoyal.kitty';
   }
 
-  // 5. Alacritty
+  // 7. Alacritty
   if (env.ALACRITTY_SOCKET) {
     return 'io.alacritty';
   }
 
-  // 6. Warp
+  // 8. Warp
   if (env.WARP_IS_LOCAL_SHELL_SESSION) {
     return 'dev.warp.Warp-Stable';
   }
 
-  // 7. TERM_PROGRAM 기반 매핑 (tmux 외부 환경)
+  // 9. TERM_PROGRAM 기반 매핑 (tmux 외부 환경)
   const termProgram = env.TERM_PROGRAM;
 
   if (termProgram && termProgram !== 'tmux') {
@@ -139,7 +171,7 @@ export function detectTerminalBundleId(): string | undefined {
     }
   }
 
-  // 8. __CFBundleIdentifier fallback
+  // 10. __CFBundleIdentifier fallback
   const cfBundleId = env.__CFBundleIdentifier;
 
   if (cfBundleId) {

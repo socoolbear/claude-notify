@@ -13,11 +13,6 @@ export type NotificationType =
   | 'elicitation_dialog';
 
 /**
- * Stop 이벤트 종료 사유
- */
-export type StopReason = 'user_stopped' | 'error' | 'max_turns_reached' | 'completed' | 'unknown';
-
-/**
  * Notification 이벤트 입력
  */
 export interface NotificationHookInput {
@@ -34,8 +29,10 @@ export interface NotificationHookInput {
 export interface StopHookInput {
   hook_event_name: 'Stop';
   session_id: string;
-  stop_reason: StopReason;
-  timestamp?: string;
+  transcript_path: string;
+  cwd: string;
+  permission_mode: string;
+  stop_hook_active: boolean;
 }
 
 /**
@@ -91,7 +88,7 @@ export interface NotificationTypeConfig {
   enabled: boolean;
   /** 알림 제목 */
   title: string;
-  /** 메시지 템플릿 ({message} 또는 {reason} 플레이스홀더 사용) */
+  /** 메시지 템플릿 ({message} 플레이스홀더 사용) */
   message_template: string;
   /** 사용할 알림 채널 목록 */
   channels: ('terminal-notifier' | 'ntfy')[];

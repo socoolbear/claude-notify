@@ -1,6 +1,6 @@
 import { debug, warn } from '@/logger';
 import type { SystemState } from '@/types';
-import { detectTerminalBundleId, getFrontmostAppBundleId } from '@/utils';
+import { detectTerminalBundleId, getFrontmostAppBundleId, isTerminalApp } from '@/utils';
 import { $ } from 'bun';
 
 /**
@@ -31,12 +31,17 @@ async function isCurrentTerminalForeground(): Promise<boolean> {
 
   debug(`Current terminal: ${currentTerminalBundleId}, Frontmost app: ${frontmostBundleId}`);
 
-  // 현재 터미널을 감지할 수 없으면 false 반환 (알림 전송)
-  if (!currentTerminalBundleId) {
-    return false;
+  // 1단계: 환경변수 기반 감지 성공 시 정확한 비교
+  if (currentTerminalBundleId) {
+    const isMatch = currentTerminalBundleId === frontmostBundleId;
+    debug(`Terminal Bundle ID match: ${isMatch}`);
+    return isMatch;
   }
 
-  return currentTerminalBundleId === frontmostBundleId;
+  // 2단계: Fallback - frontmost 앱이 알려진 터미널/IDE인지 확인
+  const isFrontmostTerminal = isTerminalApp(frontmostBundleId);
+  debug(`Fallback check - Frontmost app is terminal: ${isFrontmostTerminal}`);
+  return isFrontmostTerminal;
 }
 
 /**

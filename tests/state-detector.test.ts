@@ -126,6 +126,80 @@ describe('isCurrentTerminalForeground 로직 (모킹)', () => {
   });
 });
 
+describe('isCurrentTerminalForeground fallback 로직 (모킹)', () => {
+  // isTerminalApp 모킹 포함
+  const TERMINAL_BUNDLE_IDS = [
+    'com.apple.Terminal',
+    'com.googlecode.iterm2',
+    'dev.warp.Warp-Stable',
+    'com.github.wez.wezterm',
+    'io.alacritty',
+    'net.kovidgoyal.kitty',
+    'com.mitchellh.ghostty',
+    'com.jetbrains.WebStorm',
+    'com.jetbrains.intellij',
+    'com.microsoft.VSCode',
+  ];
+
+  function isTerminalApp(bundleId: string): boolean {
+    if (!bundleId) return false;
+    const lowerBundleId = bundleId.toLowerCase();
+    const TERMINAL_KEYWORDS = ['terminal', 'console', 'iterm', 'shell', 'prompt'];
+    if (TERMINAL_BUNDLE_IDS.includes(bundleId)) return true;
+    if (bundleId.startsWith('com.jetbrains.')) return true;
+    return TERMINAL_KEYWORDS.some((keyword) => lowerBundleId.includes(keyword));
+  }
+
+  function mockIsCurrentTerminalForegroundWithFallback(
+    currentTerminalBundleId: string | undefined,
+    frontmostBundleId: string,
+  ): boolean {
+    // 1단계: 환경변수 기반 감지 성공 시 정확한 비교
+    if (currentTerminalBundleId) {
+      return currentTerminalBundleId === frontmostBundleId;
+    }
+
+    // 2단계: Fallback - frontmost 앱이 알려진 터미널/IDE인지 확인
+    return isTerminalApp(frontmostBundleId);
+  }
+
+  test('환경변수 감지 실패 시 frontmost가 WebStorm이면 true (fallback)', () => {
+    const result = mockIsCurrentTerminalForegroundWithFallback(
+      undefined,
+      'com.jetbrains.WebStorm',
+    );
+
+    expect(result).toBe(true);
+  });
+
+  test('환경변수 감지 실패 시 frontmost가 VS Code면 true (fallback)', () => {
+    const result = mockIsCurrentTerminalForegroundWithFallback(
+      undefined,
+      'com.microsoft.VSCode',
+    );
+
+    expect(result).toBe(true);
+  });
+
+  test('환경변수 감지 실패 시 frontmost가 Chrome이면 false (fallback)', () => {
+    const result = mockIsCurrentTerminalForegroundWithFallback(
+      undefined,
+      'com.google.Chrome',
+    );
+
+    expect(result).toBe(false);
+  });
+
+  test('환경변수 감지 성공 시 정확한 비교 (fallback 미사용)', () => {
+    const result = mockIsCurrentTerminalForegroundWithFallback(
+      'com.googlecode.iterm2',
+      'com.jetbrains.WebStorm',
+    );
+
+    expect(result).toBe(false);
+  });
+});
+
 describe('SystemState 타입 검증', () => {
   test('올바른 SystemState 객체 구조', () => {
     const state: SystemState = {
