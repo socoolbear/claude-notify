@@ -19,7 +19,7 @@ function createMockedDetector() {
 }
 
 describe('detectSystemState (모킹)', () => {
-  test('화면이 잠기지 않고 터미널이 활성화된 경우', async () => {
+  test('화면이 잠기지 않고 현재 터미널이 foreground인 경우', async () => {
     const detector = createMockedDetector();
     detector.detectSystemState.mockResolvedValue({
       is_screen_locked: false,
@@ -45,7 +45,20 @@ describe('detectSystemState (모킹)', () => {
     expect(state.is_terminal_active).toBe(false);
   });
 
-  test('터미널이 백그라운드에 있는 경우', async () => {
+  test('현재 터미널이 백그라운드에 있는 경우', async () => {
+    const detector = createMockedDetector();
+    detector.detectSystemState.mockResolvedValue({
+      is_screen_locked: false,
+      is_terminal_active: false,
+    });
+
+    const state = await detector.detectSystemState();
+
+    expect(state.is_screen_locked).toBe(false);
+    expect(state.is_terminal_active).toBe(false);
+  });
+
+  test('현재 터미널 Bundle ID를 감지할 수 없는 경우 - terminal_active는 false', async () => {
     const detector = createMockedDetector();
     detector.detectSystemState.mockResolvedValue({
       is_screen_locked: false,
@@ -63,6 +76,53 @@ describe('detectSystemState (모킹)', () => {
     detector.detectSystemState.mockRejectedValue(new Error('System command failed'));
 
     await expect(detector.detectSystemState()).rejects.toThrow('System command failed');
+  });
+});
+
+describe('isCurrentTerminalForeground 로직 (모킹)', () => {
+  function mockIsCurrentTerminalForeground(
+    currentTerminalBundleId: string | undefined,
+    frontmostBundleId: string,
+  ): boolean {
+    // 현재 터미널을 감지할 수 없으면 false 반환 (알림 전송)
+    if (!currentTerminalBundleId) {
+      return false;
+    }
+
+    return currentTerminalBundleId === frontmostBundleId;
+  }
+
+  test('현재 터미널과 foreground 앱의 Bundle ID가 일치하면 true', () => {
+    const result = mockIsCurrentTerminalForeground(
+      'com.googlecode.iterm2',
+      'com.googlecode.iterm2',
+    );
+
+    expect(result).toBe(true);
+  });
+
+  test('현재 터미널과 foreground 앱의 Bundle ID가 다르면 false', () => {
+    const result = mockIsCurrentTerminalForeground(
+      'com.googlecode.iterm2',
+      'com.apple.Safari',
+    );
+
+    expect(result).toBe(false);
+  });
+
+  test('현재 터미널 Bundle ID를 감지할 수 없으면 false', () => {
+    const result = mockIsCurrentTerminalForeground(undefined, 'com.googlecode.iterm2');
+
+    expect(result).toBe(false);
+  });
+
+  test('다른 터미널 앱이 foreground여도 현재 터미널이 아니면 false', () => {
+    const result = mockIsCurrentTerminalForeground(
+      'com.googlecode.iterm2',
+      'com.apple.Terminal',
+    );
+
+    expect(result).toBe(false);
   });
 });
 

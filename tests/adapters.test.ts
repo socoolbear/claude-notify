@@ -160,4 +160,29 @@ describe('NotificationPayload 타입 검증', () => {
     expect(payload).toHaveProperty('message');
     expect(payload.priority).toBeUndefined();
   });
+
+  test('activateBundleId는 선택 사항', () => {
+    const payload: NotificationPayload = {
+      title: 'Test Title',
+      message: 'Test Message',
+    };
+
+    expect(payload).toHaveProperty('title');
+    expect(payload).toHaveProperty('message');
+    expect(payload.activateBundleId).toBeUndefined();
+  });
+
+  test('activateBundleId 포함된 페이로드', () => {
+    const payload: NotificationPayload = {
+      title: 'Test Title',
+      message: 'Test Message',
+      activateBundleId: 'com.googlecode.iterm2',
+    };
+
+    expect(payload).toHaveProperty('title');
+    expect(payload).toHaveProperty('message');
+    expect(payload).toHaveProperty('activateBundleId');
+    expect(typeof payload.activateBundleId).toBe('string');
+    expect(payload.activateBundleId).toBe('com.googlecode.iterm2');
+  });
 });

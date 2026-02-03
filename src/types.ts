@@ -139,6 +139,8 @@ export interface NotificationPayload {
   message: string;
   /** 알림 우선순위 (1: min, 3: default, 5: high) */
   priority?: 1 | 2 | 3 | 4 | 5;
+  /** 알림 클릭 시 활성화할 앱의 Bundle ID (terminal-notifier 전용) */
+  activateBundleId?: string;
 }
 
 /**

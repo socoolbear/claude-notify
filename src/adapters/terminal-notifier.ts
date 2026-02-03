@@ -9,12 +9,21 @@ import { $ } from 'bun';
 
 export const TerminalNotifierAdapter: Adapter = {
   async send(payload: NotificationPayload): Promise<void> {
-    const { title, message } = payload;
+    const { title, message, activateBundleId } = payload;
 
     debug(`TerminalNotifier: Sending notification - title="${title}", message="${message}"`);
 
-    const result =
-      await $`terminal-notifier -title ${title} -message ${message} -sound default`.nothrow();
+    if (activateBundleId) {
+      debug(`TerminalNotifier: Will activate bundle ID: ${activateBundleId}`);
+    }
+
+    const args = ['terminal-notifier', '-title', title, '-message', message, '-sound', 'default'];
+
+    if (activateBundleId) {
+      args.push('-activate', activateBundleId);
+    }
+
+    const result = await $`${args}`.nothrow();
 
     if (result.exitCode === 0) {
       debug('TerminalNotifier: Notification sent successfully');

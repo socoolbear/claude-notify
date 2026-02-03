@@ -1,3 +1,4 @@
+import { debug } from '@/logger';
 import { $ } from 'bun';
 
 /**
@@ -10,6 +11,7 @@ const TERMINAL_BUNDLE_IDS = [
   'com.github.wez.wezterm', // WezTerm
   'io.alacritty', // Alacritty
   'net.kovidgoyal.kitty', // Kitty
+  'com.mitchellh.ghostty', // Ghostty
   'com.jetbrains.intellij', // IntelliJ IDEA
   'com.jetbrains.intellij.ce', // IntelliJ IDEA Community
   'com.jetbrains.AppCode', // AppCode
@@ -72,6 +74,77 @@ export async function getFrontmostAppBundleId(): Promise<string> {
  */
 export async function isFrontmostAppTerminal(): Promise<boolean> {
   const bundleId = await getFrontmostAppBundleId();
+  const isTerminal = isTerminalApp(bundleId);
 
-  return isTerminalApp(bundleId);
+  debug(`Frontmost app: ${bundleId}, isTerminal: ${isTerminal}`);
+
+  return isTerminal;
+}
+
+/**
+ * Detect the Bundle ID of the current terminal application.
+ * Works even inside tmux by checking environment variables.
+ * @returns Bundle ID of the terminal, or undefined if not detected
+ */
+export function detectTerminalBundleId(): string | undefined {
+  const env = process.env;
+
+  // 1. iTerm2
+  if (env.LC_TERMINAL === 'iTerm2' || env.ITERM_SESSION_ID) {
+    return 'com.googlecode.iterm2';
+  }
+
+  // 2. Ghostty
+  if (env.GHOSTTY_RESOURCES_DIR) {
+    return 'com.mitchellh.ghostty';
+  }
+
+  // 3. WezTerm
+  if (env.WEZTERM_EXECUTABLE) {
+    return 'com.github.wez.wezterm';
+  }
+
+  // 4. Kitty
+  if (env.KITTY_WINDOW_ID) {
+    return 'net.kovidgoyal.kitty';
+  }
+
+  // 5. Alacritty
+  if (env.ALACRITTY_SOCKET) {
+    return 'io.alacritty';
+  }
+
+  // 6. Warp
+  if (env.WARP_IS_LOCAL_SHELL_SESSION) {
+    return 'dev.warp.Warp-Stable';
+  }
+
+  // 7. TERM_PROGRAM 기반 매핑 (tmux 외부 환경)
+  const termProgram = env.TERM_PROGRAM;
+
+  if (termProgram && termProgram !== 'tmux') {
+    const mapping: Record<string, string> = {
+      Apple_Terminal: 'com.apple.Terminal',
+      'iTerm.app': 'com.googlecode.iterm2',
+      WarpTerminal: 'dev.warp.Warp-Stable',
+      WezTerm: 'com.github.wez.wezterm',
+      Alacritty: 'io.alacritty',
+      kitty: 'net.kovidgoyal.kitty',
+      ghostty: 'com.mitchellh.ghostty',
+      vscode: 'com.microsoft.VSCode',
+    };
+
+    if (mapping[termProgram]) {
+      return mapping[termProgram];
+    }
+  }
+
+  // 8. __CFBundleIdentifier fallback
+  const cfBundleId = env.__CFBundleIdentifier;
+
+  if (cfBundleId) {
+    return cfBundleId;
+  }
+
+  return undefined;
 }

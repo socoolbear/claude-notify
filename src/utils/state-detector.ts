@@ -1,6 +1,6 @@
 import { debug, warn } from '@/logger';
 import type { SystemState } from '@/types';
-import { isFrontmostAppTerminal } from '@/utils';
+import { detectTerminalBundleId, getFrontmostAppBundleId } from '@/utils';
 import { $ } from 'bun';
 
 /**
@@ -22,12 +22,30 @@ async function isScreenLocked(): Promise<boolean> {
 }
 
 /**
+ * 현재 터미널이 foreground인지 확인
+ * Claude Code가 실행 중인 터미널과 foreground 앱이 같은지 비교
+ */
+async function isCurrentTerminalForeground(): Promise<boolean> {
+  const currentTerminalBundleId = detectTerminalBundleId();
+  const frontmostBundleId = await getFrontmostAppBundleId();
+
+  debug(`Current terminal: ${currentTerminalBundleId}, Frontmost app: ${frontmostBundleId}`);
+
+  // 현재 터미널을 감지할 수 없으면 false 반환 (알림 전송)
+  if (!currentTerminalBundleId) {
+    return false;
+  }
+
+  return currentTerminalBundleId === frontmostBundleId;
+}
+
+/**
  * 시스템 상태 감지 (화면 잠금 + 터미널 활성화)
  */
 export async function detectSystemState(): Promise<SystemState> {
   const [is_screen_locked, is_terminal_active] = await Promise.all([
     isScreenLocked(),
-    isFrontmostAppTerminal(),
+    isCurrentTerminalForeground(),
   ]);
 
   debug(

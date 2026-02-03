@@ -1,7 +1,7 @@
 import { TerminalNotifierAdapter, createNtfyAdapter } from '@/adapters';
 import { debug, info, warn } from '@/logger';
 import type { Config, NotificationHookInput, NotificationTypeConfig, SystemState } from '@/types';
-import { detectSystemState } from '@/utils';
+import { detectSystemState, detectTerminalBundleId } from '@/utils';
 
 /** 기본 알림 설정 */
 const DEFAULT_NOTIFICATION_CONFIG: NotificationTypeConfig = {
@@ -50,8 +50,15 @@ export async function handleNotification(
 
   debug(`Selected channels: ${channels.join(', ')}`);
 
+  // 터미널 Bundle ID 감지 (terminal-notifier 알림 클릭 시 활성화)
+  const bundleId = detectTerminalBundleId();
+
+  if (bundleId) {
+    debug(`Detected terminal Bundle ID: ${bundleId}`);
+  }
+
   // 알림 전송
-  await sendNotifications(channels, notificationConfig, message, config);
+  await sendNotifications(channels, notificationConfig, message, config, bundleId);
 }
 
 /**
@@ -92,6 +99,7 @@ async function sendNotifications(
   notificationConfig: { title: string; message_template: string },
   message: string,
   config: Config,
+  activateBundleId?: string,
 ): Promise<void> {
   const finalMessage = notificationConfig.message_template.replace('{message}', message);
 
@@ -101,6 +109,7 @@ async function sendNotifications(
         await TerminalNotifierAdapter.send({
           title: notificationConfig.title,
           message: finalMessage,
+          activateBundleId,
         });
 
         info('Notification sent via terminal-notifier');
