@@ -1,0 +1,16 @@
+{
+  "name": "claude-notify",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "bun build ./src/index.ts --compile --outfile=claude-notify",
+    "dev": "bun run src/index.ts",
+    "test": "bun test",
+    "lint": "biome check ./src",
+    "fmt": "biome format --write ./src"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.0",
+    "@types/bun": "latest"
+  }
+}
