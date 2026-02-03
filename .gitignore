@@ -152,7 +152,7 @@ bun.lockb
 .bun/
 
 # Build output (compiled binary)
-/claude-notify
+dist/
 
 # Claude Code 계획서 (로컬 전용)
 .claude/plans/
