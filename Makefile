@@ -1,4 +1,4 @@
-.PHONY: build install test lint fmt clean dev
+.PHONY: build install uninstall test lint fmt clean dev
 
 # 기본 타겟
 all: build
@@ -10,7 +10,7 @@ build:
 # ~/.local/bin에 설치
 install: build
 	mkdir -p ~/.local/bin
-	cp claude-notify ~/.local/bin/
+	cp dist/bin/claude-notify ~/.local/bin/
 	chmod +x ~/.local/bin/claude-notify
 
 # 개발 모드
@@ -29,6 +29,10 @@ lint:
 fmt:
 	bun run fmt
 
+# 설치 제거
+uninstall:
+	rm -f ~/.local/bin/claude-notify
+
 # 정리
 clean:
-	rm -f claude-notify
+	rm -f dist/bin/claude-notify
