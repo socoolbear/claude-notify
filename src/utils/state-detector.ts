@@ -9,9 +9,9 @@ import { $ } from 'bun';
 async function isScreenLocked(): Promise<boolean> {
   try {
     // ioreg 명령으로 화면 잠금 상태 확인
-    const result = await $`ioreg -n Root -d1 -a`.text();
+    const result = await $`ioreg -n Root -d1`.text();
 
-    const isLocked = result.includes('"CGSSessionScreenIsLocked" = Yes');
+    const isLocked = result.includes('"IOConsoleLocked" = Yes');
     debug(`Screen lock status: ${isLocked}`);
 
     return isLocked;

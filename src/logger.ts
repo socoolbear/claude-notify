@@ -3,6 +3,8 @@
  * Controlled via CLAUDE_NOTIFY_LOG and CLAUDE_NOTIFY_LOG_LEVEL environment variables.
  */
 
+import { appendFileSync, mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { getBoolEnv, getEnv, getHome } from '@/utils';
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
@@ -61,12 +63,11 @@ export function log(level: LogLevel, message: string): void {
   const logFilePath = getLogFilePath();
 
   try {
-    const file = Bun.file(logFilePath);
-    const writer = file.writer();
+    // 디렉토리가 없으면 생성
+    mkdirSync(dirname(logFilePath), { recursive: true });
 
-    writer.write(logEntry);
-    writer.flush();
-    writer.end();
+    // append 모드로 로그 추가
+    appendFileSync(logFilePath, logEntry);
   } catch (err) {
     // Fail silently to avoid disrupting main program
     console.error(`Failed to write log: ${err}`);
