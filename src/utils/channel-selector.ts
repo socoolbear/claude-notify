@@ -3,6 +3,11 @@ import { CHANNEL_TYPES, type SystemState } from '@/types';
 
 /**
  * 시스템 상태에 따라 알림 채널 결정
+ *
+ * 우선순위:
+ * 1. 화면 잠금 → ntfy만 (모바일 푸시)
+ * 2. 터미널 비활성 → terminal-notifier만 (로컬 알림)
+ * 3. 기본 → 설정된 모든 채널
  */
 export function selectChannels(
   state: SystemState,
@@ -17,7 +22,16 @@ export function selectChannels(
     return hasNtfy ? [CHANNEL_TYPES.NTFY] : [];
   }
 
-  // 터미널에서 떨어져 있음 → 설정된 채널 사용
+  // 터미널에서 떨어져 있음 → terminal-notifier만 (로컬 알림)
+  if (!state.is_terminal_active) {
+    const hasTerminalNotifier = configuredChannels.includes(CHANNEL_TYPES.TERMINAL_NOTIFIER);
+
+    debug(`Away from terminal - selecting terminal-notifier: ${hasTerminalNotifier}`);
+
+    return hasTerminalNotifier ? [CHANNEL_TYPES.TERMINAL_NOTIFIER] : [];
+  }
+
+  // 기본: 설정된 모든 채널 사용
   return [...configuredChannels];
 }
 

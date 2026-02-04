@@ -36,4 +36,4 @@ function isValidHookInput(input: unknown): boolean {
   return ['Notification', 'Stop'].includes(obj.hook_event_name);
 }
 
-export default isValidHookInput
+export default isValidHookInput;

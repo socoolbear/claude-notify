@@ -18,7 +18,7 @@ const DEFAULT_STOP_CONFIG: NotificationTypeConfig = {
   enabled: true,
   title: 'Claude Code Session',
   message_template: 'Session completed',
-  channels: [CHANNEL_TYPES.NTFY],
+  channels: [CHANNEL_TYPES.TERMINAL_NOTIFIER, CHANNEL_TYPES.NTFY],
 };
 
 /**
