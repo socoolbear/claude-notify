@@ -141,6 +141,16 @@ export interface NotificationPayload {
 }
 
 /**
+ * 알림 채널 타입 상수
+ */
+export const CHANNEL_TYPES = {
+  TERMINAL_NOTIFIER: 'terminal-notifier',
+  NTFY: 'ntfy',
+} as const;
+
+export type ChannelType = (typeof CHANNEL_TYPES)[keyof typeof CHANNEL_TYPES];
+
+/**
  * 알림 어댑터 인터페이스
  */
 export interface Adapter {

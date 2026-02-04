@@ -7,6 +7,7 @@ import { loadConfig } from '@/config';
 import { handleNotification, handleStop } from '@/handlers';
 import { debug, error, info } from '@/logger';
 import type { HookInput } from '@/types';
+import { isValidHookInput } from '@/utils';
 
 async function main(): Promise<void> {
   try {
@@ -19,7 +20,14 @@ async function main(): Promise<void> {
     }
 
     // 2. JSON 파싱
-    const input = JSON.parse(inputText) as HookInput;
+    const parsed = JSON.parse(inputText);
+
+    if (!isValidHookInput(parsed)) {
+      error('Invalid hook input format');
+      process.exit(1);
+    }
+
+    const input = parsed as HookInput;
     debug(`Received event: ${input.hook_event_name}`);
 
     // 3. 설정 로드

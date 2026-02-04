@@ -1,7 +1,11 @@
 import { debug, warn } from '@/logger';
 import type { SystemState } from '@/types';
-import { detectTerminalBundleId, getFrontmostAppBundleId, isTerminalApp } from '@/utils';
 import { $ } from 'bun';
+import {
+  detectTerminalBundleId,
+  getFrontmostAppBundleId,
+  isTerminalApp,
+} from './terminal-detector';
 
 /**
  * 화면 잠금 상태 확인 (macOS)

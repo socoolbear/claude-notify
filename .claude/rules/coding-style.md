@@ -58,6 +58,25 @@ export { getEnv, getBoolEnv, getHome } from './env';
 export { detectSystemState } from './state-detector';
 ```
 
+### 같은 디렉토리 내부 Import 규칙
+
+**중요**: 같은 디렉토리 내부의 모듈을 import할 때는 **상대 경로**를 사용합니다.
+barrel export를 거쳐서 import하면 순환 참조 위험과 IDE 경고가 발생합니다.
+
+```typescript
+// ❌ Bad - 같은 디렉토리에서 barrel export 거침 (순환 참조 위험)
+// src/utils/state-detector.ts
+import { isTerminalApp } from '@/utils';
+
+// ✅ Good - 상대 경로로 직접 import
+// src/utils/state-detector.ts
+import { isTerminalApp } from './terminal-detector';
+```
+
+**정리:**
+- 다른 디렉토리 → barrel export 사용 (`@/utils`)
+- 같은 디렉토리 → 상대 경로 사용 (`./module`)
+
 ### throw 안티패턴 주의
 
 ```typescript

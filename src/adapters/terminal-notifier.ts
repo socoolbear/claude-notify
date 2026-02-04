@@ -5,6 +5,7 @@
 
 import { debug, error } from '@/logger';
 import type { Adapter, NotificationPayload } from '@/types';
+import { sanitizeForShell } from '@/utils';
 import { $ } from 'bun';
 
 export const TerminalNotifierAdapter: Adapter = {
@@ -17,10 +18,22 @@ export const TerminalNotifierAdapter: Adapter = {
       debug(`TerminalNotifier: Will activate bundle ID: ${activateBundleId}`);
     }
 
-    const args = ['terminal-notifier', '-title', title, '-message', message, '-sound', 'default'];
+    const safeTitle = sanitizeForShell(title);
+    const safeMessage = sanitizeForShell(message);
+
+    const args = [
+      'terminal-notifier',
+      '-title',
+      safeTitle,
+      '-message',
+      safeMessage,
+      '-sound',
+      'default',
+    ];
 
     if (activateBundleId) {
-      args.push('-activate', activateBundleId);
+      const safeBundleId = sanitizeForShell(activateBundleId);
+      args.push('-activate', safeBundleId);
     }
 
     const result = await $`${args}`.nothrow();

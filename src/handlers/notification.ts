@@ -1,14 +1,24 @@
 import { TerminalNotifierAdapter, createNtfyAdapter } from '@/adapters';
 import { debug, info, warn } from '@/logger';
-import type { Config, NotificationHookInput, NotificationTypeConfig, SystemState } from '@/types';
-import { detectSystemState, detectTerminalBundleId } from '@/utils';
+import {
+  CHANNEL_TYPES,
+  type Config,
+  type NotificationHookInput,
+  type NotificationTypeConfig,
+} from '@/types';
+import {
+  detectSystemState,
+  detectTerminalBundleId,
+  selectChannels,
+  shouldSkipNotification,
+} from '@/utils';
 
 /** 기본 알림 설정 */
 const DEFAULT_NOTIFICATION_CONFIG: NotificationTypeConfig = {
   enabled: true,
   title: 'Claude Code',
   message_template: '{message}',
-  channels: ['terminal-notifier', 'ntfy'],
+  channels: [CHANNEL_TYPES.TERMINAL_NOTIFIER, CHANNEL_TYPES.NTFY],
 };
 
 /**
@@ -38,7 +48,7 @@ export async function handleNotification(
   }
 
   // 스마트 알림 결정 로직
-  const shouldSkip = shouldSkipNotification(state, config);
+  const shouldSkip = shouldSkipNotification(state, config.skip_when_active ?? true);
 
   if (shouldSkip) {
     info('Skipping notification (terminal is active)');
@@ -46,9 +56,14 @@ export async function handleNotification(
   }
 
   // 알림 채널 결정
-  const channels = determineChannels(state, notificationConfig);
+  const channels = selectChannels(state, notificationConfig.channels);
 
   debug(`Selected channels: ${channels.join(', ')}`);
+
+  if (channels.length === 0) {
+    info('No channels available for notification');
+    return;
+  }
 
   // 터미널 Bundle ID 감지 (terminal-notifier 알림 클릭 시 활성화)
   const bundleId = detectTerminalBundleId();
@@ -59,36 +74,6 @@ export async function handleNotification(
 
   // 알림 전송
   await sendNotifications(channels, notificationConfig, message, config, bundleId);
-}
-
-/**
- * 터미널이 활성화되어 있고 skip_when_active 설정이 true면 알림 스킵
- */
-function shouldSkipNotification(state: SystemState, config: Config): boolean {
-  return state.is_terminal_active && (config.skip_when_active ?? true);
-}
-
-/**
- * 시스템 상태에 따라 알림 채널 결정
- */
-function determineChannels(
-  state: SystemState,
-  notificationConfig: { channels: readonly string[] },
-): string[] {
-  // 화면 잠금 시 → ntfy만 (모바일 푸시)
-  if (state.is_screen_locked) {
-    return notificationConfig.channels.includes('ntfy') ? ['ntfy'] : [];
-  }
-
-  // 터미널에서 떨어져 있음 (화면 잠금 아니고 터미널 비활성) → terminal-notifier (로컬)
-  const awayFromTerminal = !state.is_terminal_active && !state.is_screen_locked;
-
-  if (awayFromTerminal) {
-    return notificationConfig.channels.includes('terminal-notifier') ? ['terminal-notifier'] : [];
-  }
-
-  // 기본: 설정된 모든 채널 사용
-  return [...notificationConfig.channels];
 }
 
 /**
@@ -105,7 +90,7 @@ async function sendNotifications(
 
   const promises = channels.map(async (channel) => {
     try {
-      if (channel === 'terminal-notifier') {
+      if (channel === CHANNEL_TYPES.TERMINAL_NOTIFIER) {
         await TerminalNotifierAdapter.send({
           title: notificationConfig.title,
           message: finalMessage,
@@ -113,7 +98,7 @@ async function sendNotifications(
         });
 
         info('Notification sent via terminal-notifier');
-      } else if (channel === 'ntfy') {
+      } else if (channel === CHANNEL_TYPES.NTFY) {
         const adapter = createNtfyAdapter(config.ntfy);
 
         await adapter.send({

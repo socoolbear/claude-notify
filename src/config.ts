@@ -52,6 +52,7 @@ function mergeWithDefaults(partial: Partial<Config>): Config {
       ...partial.log,
     },
     skip_when_active: partial.skip_when_active ?? defaults.skip_when_active,
+    notifications: partial.notifications ?? defaults.notifications,
   };
 }
 
