@@ -37,7 +37,12 @@ export function selectChannels(
 
 /**
  * 터미널 활성화 상태에 따라 알림 스킵 여부 결정
+ * 단, 화면 잠금 시에는 스킵하지 않음 (모바일 알림 필요)
  */
 export function shouldSkipNotification(state: SystemState, skipWhenActive: boolean): boolean {
+  if (state.is_screen_locked) {
+    return false;
+  }
+
   return state.is_terminal_active && skipWhenActive;
 }
