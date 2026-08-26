@@ -4,8 +4,10 @@
  */
 
 /**
- * 쉘 명령어에 안전하게 전달할 수 있도록 문자열 sanitize
- * 제어 문자 및 위험한 문자 제거
+ * 알림 텍스트에서 제어 문자 (ASCII 0-31, 127) 를 제거한다.
+ *
+ * 외부 명령은 execFile 로 인자를 배열 전달하므로 셸 이스케이프는 필요 없다.
+ * 이 함수는 제어 문자가 알림 표시를 깨뜨리는 것을 막는 용도다.
  */
 export function sanitizeForShell(input: string): string {
   if (!input) {

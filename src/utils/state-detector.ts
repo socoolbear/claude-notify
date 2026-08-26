@@ -1,6 +1,6 @@
 import { debug, warn } from '@/logger';
 import type { SystemState } from '@/types';
-import { $ } from 'bun';
+import { runCommand } from './exec';
 import {
   detectTerminalBundleId,
   getFrontmostAppBundleId,
@@ -11,18 +11,18 @@ import {
  * 화면 잠금 상태 확인 (macOS)
  */
 async function isScreenLocked(): Promise<boolean> {
-  try {
-    // ioreg 명령으로 화면 잠금 상태 확인
-    const result = await $`ioreg -n Root -d1`.text();
+  // ioreg 명령으로 화면 잠금 상태 확인
+  const result = await runCommand('ioreg', ['-n', 'Root', '-d1']);
 
-    const isLocked = result.includes('"IOConsoleLocked" = Yes');
-    debug(`Screen lock status: ${isLocked}`);
-
-    return isLocked;
-  } catch (error) {
-    warn(`Failed to detect screen lock status: ${error}`);
+  if (result.exitCode !== 0) {
+    warn(`Failed to detect screen lock status: exit code ${result.exitCode}`);
     return false; // 에러 시 안전한 기본값
   }
+
+  const isLocked = result.stdout.includes('"IOConsoleLocked" = Yes');
+  debug(`Screen lock status: ${isLocked}`);
+
+  return isLocked;
 }
 
 /**

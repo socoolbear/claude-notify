@@ -22,10 +22,7 @@ describe('handleStop 로직 (모킹)', () => {
   }
 
   // shouldSkipStopNotification 모킹
-  function shouldSkipStopNotification(
-    state: SystemState,
-    skipWhenActive: boolean,
-  ): boolean {
+  function shouldSkipStopNotification(state: SystemState, skipWhenActive: boolean): boolean {
     return state.is_terminal_active && skipWhenActive;
   }
 
@@ -157,10 +154,7 @@ describe('Stop 알림 스킵 시나리오 (통합)', () => {
 });
 
 describe('Stop 알림 채널 결정 로직', () => {
-  function mockDetermineChannels(
-    state: SystemState,
-    stopConfig: NotificationTypeConfig,
-  ): string[] {
+  function mockDetermineChannels(state: SystemState, stopConfig: NotificationTypeConfig): string[] {
     if (state.is_screen_locked) {
       return stopConfig.channels.includes('ntfy') ? ['ntfy'] : [];
     }

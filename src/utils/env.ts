@@ -5,10 +5,10 @@
 
 /**
  * Get HOME directory path with fallback.
- * Priority: process.env.HOME > Bun.env.HOME > /tmp
+ * Priority: process.env.HOME > /tmp
  */
 export function getHome(): string {
-  const home = process.env.HOME ?? Bun.env.HOME;
+  const home = process.env.HOME;
 
   if (home) {
     return home;
@@ -26,7 +26,7 @@ export function getHome(): string {
  * @returns Environment variable value or default
  */
 export function getEnv(key: string, defaultValue?: string): string | undefined {
-  return process.env[key] ?? Bun.env[key] ?? defaultValue;
+  return process.env[key] ?? defaultValue;
 }
 
 /**
@@ -45,4 +45,13 @@ export function getBoolEnv(key: string, defaultValue = false): boolean {
   }
 
   return ['true', '1', 'yes'].includes(value.toLowerCase());
+}
+
+/**
+ * 알림 강제 발송 모드 여부.
+ * CLAUDE_NOTIFY_FORCE=true 면 터미널 활성 스킵과 채널 축소를 모두 무시하고
+ * 설정된 모든 채널로 발송한다 (설치 직후 동작 확인용).
+ */
+export function isForceMode(): boolean {
+  return getBoolEnv('CLAUDE_NOTIFY_FORCE', false);
 }

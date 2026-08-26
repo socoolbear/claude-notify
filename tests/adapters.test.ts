@@ -13,6 +13,8 @@ function createMockedTerminalNotifier(): Adapter {
       if (!payload.title || !payload.message) {
         throw new Error('Title and message are required');
       }
+
+      return true;
     }),
   };
 }
@@ -24,6 +26,8 @@ function createMockedNtfyAdapter(): Adapter {
       if (!payload.title || !payload.message) {
         throw new Error('Title and message are required');
       }
+
+      return true;
     }),
   };
 }
@@ -48,6 +52,8 @@ describe('TerminalNotifierAdapter (모킹)', () => {
       if (!payload.title) {
         throw new Error('Title is required');
       }
+
+      return true;
     });
 
     const payload = {

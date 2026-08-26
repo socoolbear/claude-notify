@@ -154,6 +154,11 @@ export type ChannelType = (typeof CHANNEL_TYPES)[keyof typeof CHANNEL_TYPES];
  * 알림 어댑터 인터페이스
  */
 export interface Adapter {
-  /** 알림 전송 */
-  send(payload: NotificationPayload): Promise<void>;
+  /**
+   * 알림 전송.
+   *
+   * @returns 실제로 전송했으면 true, 설정이 없어 건너뛰었으면 false
+   * @throws 전송을 시도했으나 실패한 경우
+   */
+  send(payload: NotificationPayload): Promise<boolean>;
 }

@@ -2,10 +2,10 @@
  * Configuration 로드 테스트
  */
 
-import { $ } from 'bun';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { loadConfig } from '@/config';
 import type { Config } from '@/types';
+import { $ } from 'bun';
 
 describe('loadConfig', () => {
   let originalHome: string | undefined;
@@ -30,7 +30,9 @@ describe('loadConfig', () => {
     const config = await loadConfig();
 
     expect(config.ntfy.server).toBe('https://ntfy.sh');
-    expect(config.ntfy.topic).toBe('claude-notify');
+    // 기본 토픽은 비어 있다 — 잘 알려진 토픽명을 기본값으로 두면
+    // 설정 없이 설치한 사용자의 알림이 공개 토픽으로 새어나간다
+    expect(config.ntfy.topic).toBe('');
     expect(config.terminal_notifier.enabled).toBe(true);
     expect(config.log.enabled).toBe(false);
     expect(config.log.level).toBe('info');

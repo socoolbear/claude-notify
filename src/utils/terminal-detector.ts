@@ -1,5 +1,5 @@
 import { debug } from '@/logger';
-import { $ } from 'bun';
+import { runCommand } from './exec';
 
 /**
  * Known terminal application Bundle IDs
@@ -63,14 +63,16 @@ export function isTerminalApp(bundleId: string): boolean {
  * @returns Bundle ID of the frontmost app, or empty string on error
  */
 export async function getFrontmostAppBundleId(): Promise<string> {
-  try {
-    const result =
-      await $`osascript -e 'id of application (path to frontmost application as text)'`.text();
+  const result = await runCommand('osascript', [
+    '-e',
+    'id of application (path to frontmost application as text)',
+  ]);
 
-    return result.trim();
-  } catch (error) {
+  if (result.exitCode !== 0) {
     return '';
   }
+
+  return result.stdout.trim();
 }
 
 /**

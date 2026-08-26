@@ -9,7 +9,7 @@
 | **이름** | claude-notify |
 | **목적** | Claude Code 알림 훅 시스템 (macOS) |
 | **언어** | TypeScript (ES2022) |
-| **런타임** | Bun |
+| **런타임** | Node 18+ (배포·훅 실행) / Bun (개발·빌드·테스트) |
 | **린터/포매터** | Biome |
 
 ### 핵심 기능
@@ -17,6 +17,7 @@
 - 시스템 상태(터미널 foreground, 화면 잠금 등)에 따라 알림 채널 자동 선택
 - terminal-notifier(로컬)와 ntfy(모바일) 어댑터 지원
 - JSON 설정 파일로 알림 타입별 커스터마이징
+- cc-marketplace 의 `claude-notify` 플러그인으로 배포 (훅 자동 등록)
 
 ---
 
@@ -36,10 +37,15 @@ src/
 │   ├── terminal-notifier.ts # macOS 네이티브 알림
 │   └── ntfy.ts              # ntfy.sh HTTP API
 └── utils/
-    ├── env.ts               # HOME 환경변수 fallback
+    ├── env.ts               # 환경변수 읽기, HOME fallback, 강제 모드 판정
+    ├── exec.ts              # execFile 기반 외부 명령 실행 (셸 미경유)
+    ├── channel-selector.ts  # 시스템 상태 → 알림 채널 결정
+    ├── sanitize.ts          # 훅 입력 검증, 제어 문자 제거
     ├── state-detector.ts    # 화면 잠금/터미널 상태 감지
     └── terminal-detector.ts # 터미널 앱 Bundle ID 관리
 ```
+
+**소스는 Bun API 를 쓰지 않습니다.** 외부 명령은 `utils/exec.ts` 의 `runCommand` (`node:child_process.execFile`), 파일 읽기는 `node:fs/promises`, stdin 은 `process.stdin` 비동기 순회를 씁니다. Bun 은 빌드(`bun build`)와 테스트(`bun:test`)에만 씁니다 — 새 코드에 `Bun.*` 나 bun `$` 를 도입하지 마세요. 번들이 Node 로 실행되지 않게 됩니다.
 
 ---
 
@@ -47,7 +53,8 @@ src/
 
 ```bash
 bun install           # 의존성 설치
-bun run build         # 바이너리 컴파일 (./claude-notify 생성)
+bun run build         # Node 실행용 단일 파일 번들 (dist/claude-notify.mjs)
+bun run build:binary  # Bun 단일 실행 바이너리 (선택)
 bun run dev           # 개발 모드 실행
 bun test              # 테스트 실행
 bun run lint          # Biome 린트
@@ -56,8 +63,10 @@ bun run fmt           # Biome 포맷
 
 **Makefile:**
 ```bash
-make build            # 바이너리 빌드
-make install          # ~/.local/bin에 설치
+make build            # dist/claude-notify.mjs 번들 생성
+make build-binary     # Bun 단일 실행 바이너리
+make install          # ~/.local/bin/claude-notify 로 설치
+make plugin-sync      # 번들을 cc-marketplace 플러그인으로 복사 (CC_MARKETPLACE 로 경로 지정)
 make test             # 테스트 실행
 make clean            # 빌드 산출물 삭제
 ```
@@ -76,6 +85,15 @@ make clean            # 빌드 산출물 삭제
    - screen_locked → ntfy만 (모바일 푸시)
    - away_from_terminal → terminal-notifier (로컬)
 ```
+
+### 배포 경로
+
+| 경로 | 대상 | 훅 등록 |
+|------|------|---------|
+| cc-marketplace 플러그인 (권장) | `/plugin install claude-notify@socoolbear-cc-marketplace` | 플러그인의 `hooks/hooks.json` 이 자동 등록 |
+| 수동 설치 | `make install` | `~/.claude/settings.json` 직접 편집 |
+
+플러그인 번들 갱신은 `make plugin-sync` 로 합니다. 소스를 고쳤으면 이 명령으로 cc-marketplace 쪽 `plugins/claude-notify/bin/claude-notify.mjs` 를 다시 만들어야 반영됩니다.
 
 ### Claude Code Hook 이벤트
 
@@ -101,6 +119,9 @@ make clean            # 빌드 산출물 삭제
 **환경변수 오버라이드:**
 - `NTFY_SERVER`, `NTFY_TOPIC`, `NTFY_TOKEN`
 - `CLAUDE_NOTIFY_LOG=true`, `CLAUDE_NOTIFY_LOG_LEVEL=debug`
+- `CLAUDE_NOTIFY_FORCE=true` — 터미널 활성 스킵과 채널 축소를 무시하고 설정된 모든 채널로 발송 (동작 확인용)
+
+**ntfy 토픽에는 기본값이 없습니다.** 잘 알려진 토픽명을 기본값으로 두면 설정하지 않은 사용자의 알림이 공개 토픽으로 새어나갑니다. 토픽이 비어 있으면 ntfy 발송을 건너뜁니다 — 이 동작을 되돌리지 마세요.
 
 ---
 
@@ -171,7 +192,9 @@ CLAUDE_NOTIFY_LOG=true bun run dev < test-input.json
 
 작업 완료 전 반드시 확인:
 
+- [ ] `bun test` 통과
 - [ ] `bun run lint` 통과
 - [ ] `bun run build` 성공
+- [ ] 번들이 Node 로 실행되는지 확인 (`echo '{...}' | node dist/claude-notify.mjs`)
 - [ ] 기존 기능 영향 없음
 - [ ] 새 파일/디렉토리 올바른 위치에 생성

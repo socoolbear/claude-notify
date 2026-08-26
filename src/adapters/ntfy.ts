@@ -3,7 +3,7 @@
  * Supports server, topic, and authentication token configuration.
  */
 
-import { debug, error } from '@/logger';
+import { debug, error, warn } from '@/logger';
 import type { Adapter, NotificationPayload, NtfyConfig } from '@/types';
 import { getEnv } from '@/utils';
 
@@ -17,14 +17,15 @@ import { getEnv } from '@/utils';
  */
 export function createNtfyAdapter(config: NtfyConfig): Adapter {
   return {
-    async send(payload: NotificationPayload): Promise<void> {
+    async send(payload: NotificationPayload): Promise<boolean> {
       const server = getEnv('NTFY_SERVER') ?? config.server ?? 'https://ntfy.sh';
       const topic = getEnv('NTFY_TOPIC') ?? config.topic;
       const token = getEnv('NTFY_TOKEN') ?? config.token;
 
       if (!topic) {
-        error('Ntfy: Topic not configured');
-        throw new Error('ntfy topic is required');
+        warn('Ntfy: 토픽이 설정되지 않아 발송을 건너뜁니다 (/notify-setup 또는 NTFY_TOPIC 설정)');
+
+        return false;
       }
 
       const url = `${server}/${topic}`;
@@ -55,6 +56,8 @@ export function createNtfyAdapter(config: NtfyConfig): Adapter {
       }
 
       debug('Ntfy: Notification sent successfully');
+
+      return true;
     },
   };
 }

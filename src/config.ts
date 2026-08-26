@@ -3,6 +3,7 @@
  * Loads config from ~/.config/claude-notify/config.json with fallback to defaults.
  */
 
+import { readFile } from 'node:fs/promises';
 import { debug } from '@/logger';
 import type { Config } from '@/types';
 import { getHome } from '@/utils';
@@ -10,12 +11,16 @@ import { getHome } from '@/utils';
 /**
  * Get default configuration.
  * Used when config file doesn't exist or for missing fields.
+ *
+ * ntfy.topic 의 기본값은 빈 문자열이다. 잘 알려진 토픽명을 기본값으로 두면
+ * 설정 없이 설치한 사용자의 알림 내용이 공개 토픽으로 흘러나가기 때문에,
+ * 토픽이 정해지기 전까지 ntfy 발송은 건너뛴다.
  */
 function getDefaultConfig(): Config {
   return {
     ntfy: {
       server: 'https://ntfy.sh',
-      topic: 'claude-notify',
+      topic: '',
     },
     terminal_notifier: {
       enabled: true,
@@ -58,7 +63,7 @@ function mergeWithDefaults(partial: Partial<Config>): Config {
 
 /**
  * Load configuration from ~/.config/claude-notify/config.json.
- * Returns default config if file doesn't exist.
+ * Returns default config if file doesn't exist or cannot be parsed.
  *
  * @returns Configuration object
  */
@@ -67,18 +72,21 @@ export async function loadConfig(): Promise<Config> {
 
   debug(`Loading config from: ${configPath}`);
 
-  const file = Bun.file(configPath);
-  const exists = await file.exists();
+  let content: string;
 
-  if (!exists) {
+  try {
+    content = await readFile(configPath, 'utf-8');
+  } catch {
     debug('Config file not found, using defaults');
     return getDefaultConfig();
   }
 
   try {
-    const content = await file.json();
+    const parsed = JSON.parse(content) as Partial<Config>;
+
     debug('Config file loaded successfully');
-    return mergeWithDefaults(content);
+
+    return mergeWithDefaults(parsed);
   } catch (err) {
     debug(`Failed to parse config file: ${err}`);
     return getDefaultConfig();

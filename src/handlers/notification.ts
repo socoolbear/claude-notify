@@ -9,6 +9,7 @@ import {
 import {
   detectSystemState,
   detectTerminalBundleId,
+  isForceMode,
   selectChannels,
   shouldSkipNotification,
 } from '@/utils';
@@ -35,8 +36,9 @@ export async function handleNotification(
 
   // 시스템 상태 감지
   const state = await detectSystemState();
+  const force = isForceMode();
 
-  debug(`System state: ${JSON.stringify(state)}`);
+  debug(`System state: ${JSON.stringify(state)}, force: ${force}`);
 
   // 알림 타입별 설정 가져오기 (없으면 기본값 사용)
   const notificationConfig =
@@ -48,7 +50,7 @@ export async function handleNotification(
   }
 
   // 스마트 알림 결정 로직
-  const shouldSkip = shouldSkipNotification(state, config.skip_when_active ?? true);
+  const shouldSkip = shouldSkipNotification(state, config.skip_when_active ?? true, force);
 
   if (shouldSkip) {
     info('Skipping notification (terminal is active)');
@@ -56,7 +58,7 @@ export async function handleNotification(
   }
 
   // 알림 채널 결정
-  const channels = selectChannels(state, notificationConfig.channels);
+  const channels = selectChannels(state, notificationConfig.channels, force);
 
   debug(`Selected channels: ${channels.join(', ')}`);
 
@@ -91,22 +93,26 @@ async function sendNotifications(
   const promises = channels.map(async (channel) => {
     try {
       if (channel === CHANNEL_TYPES.TERMINAL_NOTIFIER) {
-        await TerminalNotifierAdapter.send({
+        const sent = await TerminalNotifierAdapter.send({
           title: notificationConfig.title,
           message: finalMessage,
           activateBundleId,
         });
 
-        info('Notification sent via terminal-notifier');
+        if (sent) {
+          info('Notification sent via terminal-notifier');
+        }
       } else if (channel === CHANNEL_TYPES.NTFY) {
         const adapter = createNtfyAdapter(config.ntfy);
 
-        await adapter.send({
+        const sent = await adapter.send({
           title: notificationConfig.title,
           message: finalMessage,
         });
 
-        info('Notification sent via ntfy');
+        if (sent) {
+          info('Notification sent via ntfy');
+        }
       }
     } catch (error) {
       warn(`Failed to send notification via ${channel}: ${error}`);

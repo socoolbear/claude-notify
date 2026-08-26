@@ -5,11 +5,10 @@
 
 import { debug, error } from '@/logger';
 import type { Adapter, NotificationPayload } from '@/types';
-import { sanitizeForShell } from '@/utils';
-import { $ } from 'bun';
+import { runCommand, sanitizeForShell } from '@/utils';
 
 export const TerminalNotifierAdapter: Adapter = {
-  async send(payload: NotificationPayload): Promise<void> {
+  async send(payload: NotificationPayload): Promise<boolean> {
     const { title, message, activateBundleId } = payload;
 
     debug(`TerminalNotifier: Sending notification - title="${title}", message="${message}"`);
@@ -18,32 +17,35 @@ export const TerminalNotifierAdapter: Adapter = {
       debug(`TerminalNotifier: Will activate bundle ID: ${activateBundleId}`);
     }
 
-    const safeTitle = sanitizeForShell(title);
-    const safeMessage = sanitizeForShell(message);
-
     const args = [
-      'terminal-notifier',
       '-title',
-      safeTitle,
+      sanitizeForShell(title),
       '-message',
-      safeMessage,
+      sanitizeForShell(message),
       '-sound',
       'default',
     ];
 
     if (activateBundleId) {
-      const safeBundleId = sanitizeForShell(activateBundleId);
-      args.push('-activate', safeBundleId);
+      args.push('-activate', sanitizeForShell(activateBundleId));
     }
 
-    const result = await $`${args}`.nothrow();
+    const result = await runCommand('terminal-notifier', args);
 
     if (result.exitCode === 0) {
       debug('TerminalNotifier: Notification sent successfully');
-      return;
+
+      return true;
     }
 
-    error(`TerminalNotifier: Failed with exit code ${result.exitCode}`);
+    if (result.exitCode === -1) {
+      error(
+        'TerminalNotifier: terminal-notifier 를 실행할 수 없습니다 (brew install terminal-notifier)',
+      );
+      throw new Error('terminal-notifier not found');
+    }
+
+    error(`TerminalNotifier: Failed with exit code ${result.exitCode} ${result.stderr.trim()}`);
     throw new Error(`terminal-notifier failed with exit code ${result.exitCode}`);
   },
 };

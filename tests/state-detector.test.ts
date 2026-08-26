@@ -102,10 +102,7 @@ describe('isCurrentTerminalForeground 로직 (모킹)', () => {
   });
 
   test('현재 터미널과 foreground 앱의 Bundle ID가 다르면 false', () => {
-    const result = mockIsCurrentTerminalForeground(
-      'com.googlecode.iterm2',
-      'com.apple.Safari',
-    );
+    const result = mockIsCurrentTerminalForeground('com.googlecode.iterm2', 'com.apple.Safari');
 
     expect(result).toBe(false);
   });
@@ -117,10 +114,7 @@ describe('isCurrentTerminalForeground 로직 (모킹)', () => {
   });
 
   test('다른 터미널 앱이 foreground여도 현재 터미널이 아니면 false', () => {
-    const result = mockIsCurrentTerminalForeground(
-      'com.googlecode.iterm2',
-      'com.apple.Terminal',
-    );
+    const result = mockIsCurrentTerminalForeground('com.googlecode.iterm2', 'com.apple.Terminal');
 
     expect(result).toBe(false);
   });
@@ -164,28 +158,19 @@ describe('isCurrentTerminalForeground fallback 로직 (모킹)', () => {
   }
 
   test('환경변수 감지 실패 시 frontmost가 WebStorm이면 true (fallback)', () => {
-    const result = mockIsCurrentTerminalForegroundWithFallback(
-      undefined,
-      'com.jetbrains.WebStorm',
-    );
+    const result = mockIsCurrentTerminalForegroundWithFallback(undefined, 'com.jetbrains.WebStorm');
 
     expect(result).toBe(true);
   });
 
   test('환경변수 감지 실패 시 frontmost가 VS Code면 true (fallback)', () => {
-    const result = mockIsCurrentTerminalForegroundWithFallback(
-      undefined,
-      'com.microsoft.VSCode',
-    );
+    const result = mockIsCurrentTerminalForegroundWithFallback(undefined, 'com.microsoft.VSCode');
 
     expect(result).toBe(true);
   });
 
   test('환경변수 감지 실패 시 frontmost가 Chrome이면 false (fallback)', () => {
-    const result = mockIsCurrentTerminalForegroundWithFallback(
-      undefined,
-      'com.google.Chrome',
-    );
+    const result = mockIsCurrentTerminalForegroundWithFallback(undefined, 'com.google.Chrome');
 
     expect(result).toBe(false);
   });

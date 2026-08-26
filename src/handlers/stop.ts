@@ -9,6 +9,7 @@ import {
 import {
   detectSystemState,
   detectTerminalBundleId,
+  isForceMode,
   selectChannels,
   shouldSkipNotification,
 } from '@/utils';
@@ -32,8 +33,9 @@ export async function handleStop(input: StopHookInput, config: Config): Promise<
 
   // 시스템 상태 감지
   const state = await detectSystemState();
+  const force = isForceMode();
 
-  debug(`System state: ${JSON.stringify(state)}`);
+  debug(`System state: ${JSON.stringify(state)}, force: ${force}`);
 
   // Stop 이벤트 설정 확인 (없으면 기본값 사용)
   const stopConfig = config.notifications?.stop ?? DEFAULT_STOP_CONFIG;
@@ -44,13 +46,13 @@ export async function handleStop(input: StopHookInput, config: Config): Promise<
   }
 
   // 터미널이 활성화되어 있고 skip_when_active 설정이 true면 알림 스킵
-  if (shouldSkipNotification(state, config.skip_when_active ?? true)) {
+  if (shouldSkipNotification(state, config.skip_when_active ?? true, force)) {
     info('Skipping stop notification (terminal is active)');
     return;
   }
 
   // 알림 채널 결정
-  const channels = selectChannels(state, stopConfig.channels);
+  const channels = selectChannels(state, stopConfig.channels, force);
 
   debug(`Selected channels: ${channels.join(', ')}`);
 
@@ -83,22 +85,26 @@ async function sendStopNotifications(
   for (const channel of channels) {
     try {
       if (channel === CHANNEL_TYPES.TERMINAL_NOTIFIER) {
-        await TerminalNotifierAdapter.send({
+        const sent = await TerminalNotifierAdapter.send({
           title: stopConfig.title,
           message: finalMessage,
           activateBundleId: bundleId,
         });
 
-        info('Stop notification sent via terminal-notifier');
+        if (sent) {
+          info('Stop notification sent via terminal-notifier');
+        }
       } else if (channel === CHANNEL_TYPES.NTFY) {
         const adapter = createNtfyAdapter(config.ntfy);
 
-        await adapter.send({
+        const sent = await adapter.send({
           title: stopConfig.title,
           message: finalMessage,
         });
 
-        info('Stop notification sent via ntfy');
+        if (sent) {
+          info('Stop notification sent via ntfy');
+        }
       }
     } catch (error) {
       warn(`Failed to send stop notification via ${channel}: ${error}`);

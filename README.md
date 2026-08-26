@@ -3,7 +3,8 @@
 Claude Code 알림 훅 시스템 for macOS
 
 ![TypeScript](https://img.shields.io/badge/TypeScript-ES2022-3178c6?style=flat-square)
-![Bun](https://img.shields.io/badge/Runtime-Bun-f471b6?style=flat-square)
+![Node](https://img.shields.io/badge/Runtime-Node%2018%2B-339933?style=flat-square)
+![Bun](https://img.shields.io/badge/Build-Bun-f471b6?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
 ## 개요
@@ -22,39 +23,41 @@ Claude Code 알림 훅 시스템 for macOS
 
 ## 설치
 
-### 사전 요구사항
+### 플러그인으로 설치 (권장)
 
-- **Bun** 1.0+ ([설치 가이드](https://bun.sh))
-- **terminal-notifier** (macOS 로컬 알림용)
-
-#### terminal-notifier 설치
-
-Homebrew를 사용하는 경우:
+Claude Code 플러그인으로 설치하면 훅 등록이 자동으로 됩니다. `~/.claude/settings.json` 을 직접 편집할 필요가 없습니다.
 
 ```bash
-brew install terminal-notifier
+# 1. 마켓플레이스 등록 (최초 1회)
+/plugin marketplace add socoolbear/cc-marketplace
+
+# 2. 설치
+/plugin install claude-notify@socoolbear-cc-marketplace
+
+# 3. ntfy 토픽 설정 + 동작 확인
+/claude-notify:notify-setup
 ```
 
-### 빌드 및 설치
+문제가 생기면 `/claude-notify:notify-doctor` 로 진단할 수 있습니다.
+
+**사전 요구사항**
+
+| 항목 | 용도 | 설치 |
+|------|------|------|
+| `terminal-notifier` | macOS 로컬 알림 | `brew install terminal-notifier` |
+| Node.js 18+ | 훅 실행 | Claude Code 사용자면 대부분 이미 있습니다 |
+
+### 수동 설치 (플러그인을 쓰지 않는 경우)
 
 ```bash
-# 1. 의존성 설치
 bun install
-
-# 2. 바이너리 빌드
-bun run build
-
-# 3. ~/.local/bin에 설치
-make install
+make install        # dist/claude-notify.mjs → ~/.local/bin/claude-notify
 ```
 
-또는 한 번에:
+빌드에는 [Bun](https://bun.sh) 이 필요하지만, 산출물은 shebang 이 붙은 Node 스크립트라 **실행에는 Bun 이 필요하지 않습니다.**
 
-```bash
-make build && make install
-```
+이 경로로 설치하면 훅은 직접 등록해야 합니다 — 아래 [Claude Code 훅 설정](#claude-code-훅-설정) 참고.
 
-설치 후 `~/.local/bin`이 PATH에 포함되어 있는지 확인하세요.
 
 ## 설정
 
@@ -70,7 +73,7 @@ make build && make install
 {
   "ntfy": {
     "server": "https://ntfy.sh",
-    "topic": "claude-notify"
+    "topic": ""
   },
   "terminal_notifier": {
     "enabled": true
@@ -82,6 +85,8 @@ make build && make install
   "skip_when_active": true
 }
 ```
+
+**ntfy 토픽에는 기본값이 없습니다.** 잘 알려진 토픽명을 기본값으로 두면 설정하지 않은 사용자의 알림 내용이 공개 토픽으로 새어나가기 때문입니다. 토픽이 비어 있으면 ntfy 발송을 건너뛰고 terminal-notifier 로만 알립니다. `/claude-notify:notify-setup` 이나 `NTFY_TOPIC` 으로 토픽을 정하세요.
 
 #### 전체 설정 예시
 
@@ -153,9 +158,24 @@ export CLAUDE_NOTIFY_LOG_LEVEL=debug
 echo '{"hook_event_name":"Notification","notification_type":"permission_prompt","message":"test"}' | claude-notify
 ```
 
+| 환경변수 | 용도 |
+|----------|------|
+| `NTFY_SERVER` / `NTFY_TOPIC` / `NTFY_TOKEN` | ntfy 설정 오버라이드 |
+| `CLAUDE_NOTIFY_LOG` / `CLAUDE_NOTIFY_LOG_LEVEL` | 파일 로깅 활성화와 레벨 |
+| `CLAUDE_NOTIFY_FORCE` | 강제 발송 모드 — 터미널 활성 스킵과 채널 축소를 무시하고 설정된 모든 채널로 발송합니다. 설치 직후 동작 확인용입니다 |
+
+```bash
+# 터미널을 보고 있어도 두 채널 모두로 발송해 동작 확인
+echo '{"hook_event_name":"Notification","notification_type":"permission_prompt","message":"연결 테스트"}' \
+  | CLAUDE_NOTIFY_FORCE=true claude-notify
+```
+
 ## Claude Code 훅 설정
 
-Claude Code IDE에서 `claude-notify`를 훅으로 설정하려면 `~/.claude/settings.json`을 다음과 같이 수정하세요:
+> 플러그인으로 설치했다면 이 절은 건너뛰세요. 플러그인의 `hooks/hooks.json` 이 훅을 자동으로 등록합니다.
+> 플러그인과 수동 훅을 함께 두면 **알림이 두 번 갑니다.**
+
+수동 설치 시에는 `~/.claude/settings.json` 을 다음과 같이 수정하세요:
 
 ```json
 {
@@ -247,8 +267,11 @@ echo '{...}' | bun run dev
 ### 사용 가능한 명령어
 
 ```bash
-# 바이너리 빌드
+# Node 실행용 단일 파일 번들 (dist/claude-notify.mjs)
 bun run build
+
+# Bun 단일 실행 바이너리 (선택 — Node 없이 쓰고 싶을 때)
+bun run build:binary
 
 # 개발 모드 (핫 리로드 없음)
 bun run dev
@@ -263,10 +286,18 @@ bun run lint
 bun run fmt
 
 # Makefile 명령어
-make build          # 바이너리 빌드
-make install        # ~/.local/bin에 설치
+make build          # dist/claude-notify.mjs 번들 생성
+make build-binary   # Bun 단일 실행 바이너리
+make install        # ~/.local/bin/claude-notify 로 설치
+make plugin-sync    # 번들을 cc-marketplace 플러그인으로 복사
 make test           # 테스트 실행
 make clean          # 빌드 산출물 삭제
+```
+
+`make plugin-sync` 의 복사 위치는 `CC_MARKETPLACE` 로 바꿀 수 있습니다:
+
+```bash
+make plugin-sync CC_MARKETPLACE=~/some/other/cc-marketplace
 ```
 
 ### 프로젝트 구조
@@ -287,11 +318,16 @@ src/
 │   ├── ntfy.ts              # ntfy.sh HTTP API 클라이언트
 │   └── index.ts             # 어댑터 재공급(barrel export)
 └── utils/
-    ├── env.ts               # HOME 환경변수 fallback
+    ├── env.ts               # 환경변수 읽기, HOME fallback, 강제 모드 판정
+    ├── exec.ts              # execFile 기반 외부 명령 실행 (셸 미경유)
+    ├── channel-selector.ts  # 시스템 상태 → 알림 채널 결정
+    ├── sanitize.ts          # 훅 입력 검증, 제어 문자 제거
     ├── state-detector.ts    # 화면 잠금/터미널 상태 감지
     ├── terminal-detector.ts # 터미널 앱 Bundle ID 관리
     └── index.ts             # 유틸리티 재공급(barrel export)
 ```
+
+외부 명령은 모두 `utils/exec.ts` 의 `runCommand` 를 거칩니다. `execFile` 로 인자를 배열 전달하므로 셸을 경유하지 않고, 따라서 명령 주입이 성립하지 않습니다.
 
 ### 코딩 스타일
 
@@ -313,10 +349,12 @@ bun run fmt
 
 1. **타입 정의**: `src/types.ts`에 새로운 타입 추가
 2. **구현**: 적절한 핸들러/어댑터 파일에 로직 구현
-3. **테스트**: `src/*.test.ts` 파일에 테스트 작성
+3. **테스트**: `tests/*.test.ts` 파일에 테스트 작성
 4. **포맷 및 린트**: `bun run fmt && bun run lint`
 
 ## 트러블슈팅
+
+플러그인으로 설치했다면 `/claude-notify:notify-doctor` 가 아래 항목을 한 번에 점검합니다.
 
 ### terminal-notifier가 설치되지 않음
 
@@ -329,6 +367,12 @@ which terminal-notifier
 ```
 
 ### ntfy 푸시 알림이 작동하지 않음
+
+0. 토픽이 설정돼 있는지부터 확인하세요. 기본값이 없으므로 **토픽이 비어 있으면 ntfy 발송을 건너뜁니다.** 로그에 다음이 남습니다:
+
+```
+[WARN] Ntfy: 토픽이 설정되지 않아 발송을 건너뜁니다 (/notify-setup 또는 NTFY_TOPIC 설정)
+```
 
 1. ntfy 토픽이 유효한지 확인:
 
@@ -365,13 +409,28 @@ CLAUDE_NOTIFY_LOG=true echo '{"hook_event_name":"Notification","notification_typ
 }
 ```
 
+3. 강제 모드로 라우팅 판정을 우회해 발송 자체가 되는지 확인:
+
+```bash
+echo '{"hook_event_name":"Notification","notification_type":"permission_prompt","message":"test"}' \
+  | CLAUDE_NOTIFY_FORCE=true CLAUDE_NOTIFY_LOG=true CLAUDE_NOTIFY_LOG_LEVEL=debug claude-notify
+```
+
+4. 알림이 두 번 온다면 플러그인과 수동 훅이 함께 등록돼 있는지 확인:
+
+```bash
+grep -n "claude-notify" ~/.claude/settings.json
+```
+
 ## 파일 위치
 
 | 항목 | 경로 |
 |------|------|
 | 설정 파일 | `~/.config/claude-notify/config.json` |
 | 로그 파일 | `~/.config/claude-notify/notify.log` |
-| 바이너리 | `~/.local/bin/claude-notify` |
+| 빌드 산출물 | `dist/claude-notify.mjs` |
+| 수동 설치 위치 | `~/.local/bin/claude-notify` |
+| 플러그인 실행 파일 | `<플러그인 루트>/bin/claude-notify.mjs` |
 
 ## 라이선스
 

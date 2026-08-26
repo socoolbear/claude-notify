@@ -110,14 +110,18 @@ describe('detectTerminalBundleId (모킹)', () => {
 
   test('Ghostty 감지 - GHOSTTY_RESOURCES_DIR', () => {
     const detect = createMockedDetectTerminalBundleId();
-    const result = detect({ GHOSTTY_RESOURCES_DIR: '/Applications/Ghostty.app/Contents/Resources' });
+    const result = detect({
+      GHOSTTY_RESOURCES_DIR: '/Applications/Ghostty.app/Contents/Resources',
+    });
 
     expect(result).toBe('com.mitchellh.ghostty');
   });
 
   test('WezTerm 감지 - WEZTERM_EXECUTABLE', () => {
     const detect = createMockedDetectTerminalBundleId();
-    const result = detect({ WEZTERM_EXECUTABLE: '/Applications/WezTerm.app/Contents/MacOS/wezterm' });
+    const result = detect({
+      WEZTERM_EXECUTABLE: '/Applications/WezTerm.app/Contents/MacOS/wezterm',
+    });
 
     expect(result).toBe('com.github.wez.wezterm');
   });

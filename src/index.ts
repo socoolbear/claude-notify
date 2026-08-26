@@ -9,10 +9,28 @@ import { debug, error, info } from '@/logger';
 import type { HookInput } from '@/types';
 import { isValidHookInput } from '@/utils';
 
+/**
+ * stdin 을 끝까지 읽어 문자열로 반환.
+ * 파이프 입력이 없는 대화형 실행(TTY)에서는 대기하지 않고 빈 문자열을 반환한다.
+ */
+async function readStdin(): Promise<string> {
+  if (process.stdin.isTTY) {
+    return '';
+  }
+
+  const chunks: Buffer[] = [];
+
+  for await (const chunk of process.stdin) {
+    chunks.push(chunk as Buffer);
+  }
+
+  return Buffer.concat(chunks).toString('utf-8');
+}
+
 async function main(): Promise<void> {
   try {
     // 1. stdin에서 JSON 읽기
-    const inputText = await Bun.stdin.text();
+    const inputText = await readStdin();
 
     if (!inputText.trim()) {
       debug('Empty input received');
